@@ -39,18 +39,18 @@ if(!$plugins) {
 
 plugins_list($host, $selected_plugins);
 
-echo '<div class="graphs">';
+echo '';
 plugin_header($host, $plugin);
 
 $args = $_GET;
-print '<ul class="time-range">' . "\n";
+print '<ul class="time-range btn-group">' . "\n";
 foreach($CONFIG['term'] as $key => $s) {
 	$args['s'] = $s;
 	$selected = selected_timerange($seconds, $s);
-	printf('<li><a %s href="%s%s">%s</a></li>'."\n",
+	printf('<li class="btn btn-default"><a %s href="%s%s">%s</a></li>'."\n",
 		$selected, $CONFIG['weburl'], build_url('detail.php', $args), $key);
 }
-print "</ul>\n";
+print "</ul><br />\n";
 
 if ($CONFIG['graph_type'] == 'canvas') {
 	chdir($CONFIG['webdir']);

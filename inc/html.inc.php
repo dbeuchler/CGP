@@ -53,7 +53,7 @@ echo <<<EOT
 <body>
 
 	<div class="navbar navbar-fixed-top navbar-inverse" role="navigation">
-      <div class="container">
+      <div class="container-fluid">
         <div class="navbar-header">
           <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
             <span class="sr-only">Toggle navigation</span>
@@ -71,7 +71,7 @@ echo <<<EOT
       </div><!-- /.container -->
     </div><!-- /.navbar -->
 
-<div id="content">
+<div id="content container-fluid">
 
 EOT;
 }
@@ -135,20 +135,25 @@ function plugins_list($host, $selected_plugins = array()) {
 
 	$plugins = collectd_plugins($host);
 
-	echo '<div class="plugins">';
-	echo '<h2>Plugins</h2>';
-	echo '<ul>';
-
-	printf("<li><a %s href='%shost.php?h=%s'>overview</a></li>\n",
+	echo '<div class="">';
+	
+	echo '
+	
+   <div class="row">
+		<div class="col-sm-3 col-md-2 sidebar">
+		  <ul class="nav nav-sidebar">
+			
+	';
+	printf("<li %s><a href='%shost.php?h=%s'>Overview</a></li>\n",
 		selected_overview($selected_plugins),
 		$CONFIG['weburl'],
 		$host
 	);
-
+	
 	# first the ones defined as ordered
 	foreach($CONFIG['overview'] as $plugin) {
 		if (in_array($plugin, $plugins)) {
-			printf("<li><a %s href='%shost.php?h=%s&p=%s'>%4\$s</a></li>\n",
+			printf("<li %s ><a href='%shost.php?h=%s&p=%s'>%4\$s</a></li>\n",
 				selected_plugin($plugin, $selected_plugins),
 				$CONFIG['weburl'],
 				$host,
@@ -160,7 +165,7 @@ function plugins_list($host, $selected_plugins = array()) {
 	# other plugins
 	foreach($plugins as $plugin) {
 		if (!in_array($plugin, $CONFIG['overview'])) {
-			printf("<li><a %s href='%shost.php?h=%s&p=%s'>%4\$s</a></li>\n",
+			printf("<li %s ><a href='%shost.php?h=%s&p=%s'>%4\$s</a></li>\n",
 				selected_plugin($plugin, $selected_plugins),
 				$CONFIG['weburl'],
 				$host,
@@ -168,28 +173,33 @@ function plugins_list($host, $selected_plugins = array()) {
 			);
 		}
 	}
+	echo '
+		  </ul>
+		</div>
+	<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+	';
+	
 
-	echo '</ul>';
 	echo '</div>';
 }
 
 function selected_overview($selected_plugins) {
 	if (count($selected_plugins) > 1) {
-		return 'class="selected"';
+		return 'class="active"';
 	}
 	return '';
 }
 
 function selected_plugin($plugin, $selected_plugins) {
 	if (in_array($plugin, $selected_plugins)) {
-		return 'class="selected"';
+		return 'class="active"';
 	}
 	return '';
 }
 
 function selected_timerange($value1, $value2) {
 	if ($value1 == $value2) {
-		return 'class="selected"';
+		return 'class="active"';
 	}
 	return '';
 }
