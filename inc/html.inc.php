@@ -18,6 +18,9 @@ function html_start() {
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<title>CGP{$path}</title>
+	
+	<link rel="stylesheet" href="{$CONFIG['weburl']}layout/bootstrap.min.css">
+	<link rel="stylesheet" href="{$CONFIG['weburl']}layout/bootstrap-theme.min.css">
 	<link rel="stylesheet" href="{$CONFIG['weburl']}layout/style.css" type="text/css">
 	<meta name="viewport" content="width=1050, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
 
@@ -49,9 +52,24 @@ echo <<<EOT
 </head>
 <body>
 
-<div id="header">
-  <h1><a href="{$CONFIG['weburl']}">Collectd Graph Panel</a></h1>
-</div>
+	<div class="navbar navbar-fixed-top navbar-inverse" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="{$CONFIG['weburl']}">Collectd Graph Panel</a>
+        </div>
+        <div class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="{$CONFIG['weburl']}">Home</a></li>
+          </ul>
+        </div><!-- /.nav-collapse -->
+      </div><!-- /.container -->
+    </div><!-- /.navbar -->
 
 <div id="content">
 
