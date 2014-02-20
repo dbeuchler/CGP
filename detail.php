@@ -35,8 +35,6 @@ if(!$plugins) {
 }
 
 
-
-echo '';
 plugin_header($host, $plugin);
 
 $args = $_GET;

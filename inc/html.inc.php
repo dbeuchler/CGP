@@ -23,6 +23,7 @@ function html_start($host, $selected_plugins = array()) {
 	<link rel="stylesheet" href="{$CONFIG['weburl']}layout/bootstrap-theme.min.css">
 	<link rel="stylesheet" href="{$CONFIG['weburl']}layout/dashboard.css" type="text/css">
 	
+	<meta name="viewport" content="initial-scale = 0.6,maximum-scale = 0.6" />
 
 EOT;
 	if (isset($CONFIG['page_refresh']) && is_numeric($CONFIG['page_refresh'])) {
@@ -70,7 +71,7 @@ echo <<<EOT
               <a href="#" class="dropdown-toggle" data-toggle="dropdown">Plugins <b class="caret"></b></a>
               <ul class="dropdown-menu">
 EOT;
-					plugins_listLi($host, $selected_plugins);
+					plugins_list($host, $selected_plugins);
 echo <<<EOT
 
               </ul>
@@ -100,7 +101,6 @@ function html_end() {
 		$version = explode(' ', $changelog[0]);
 		$version = 'v'.$version[0];
 	}
-
 	echo <<<EOT
 </div>
 
@@ -144,25 +144,8 @@ function plugin_header($host, $plugin) {
 	return printf("<h2><a href='%shost.php?h=%s&p=%s'>%s</a></h2>\n", $CONFIG['weburl'], $host, $plugin, $plugin);
 }
 
+
 function plugins_list($host, $selected_plugins = array()) {
-	global $CONFIG;
-
-	$plugins = collectd_plugins($host);
-	
-	echo '
-		<div class="col-sm-3 col-md-2 sidebar">
-		  <ul class="nav nav-sidebar">
-			
-	';
-			plugins_listLi($host, $selected_plugins);
-	echo '
-		  </ul>
-		</div>
-		<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-	';
-}
-
-function plugins_listLi($host, $selected_plugins = array()) {
 	global $CONFIG;
 
 	$plugins = collectd_plugins($host);
