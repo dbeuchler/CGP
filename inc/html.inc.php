@@ -7,11 +7,11 @@ require_once 'inc/rrdtool.class.php';
 require_once 'inc/functions.inc.php';
 require_once 'inc/collectd.inc.php';
 
-function html_start() {
+function html_start($host, $selected_plugins = array()) {
 	global $CONFIG;
 
 	$path = htmlentities(breadcrumbs());
-
+	
 	echo <<<EOT
 <!DOCTYPE html>
 <html>
@@ -21,8 +21,8 @@ function html_start() {
 	
 	<link rel="stylesheet" href="{$CONFIG['weburl']}layout/bootstrap.min.css">
 	<link rel="stylesheet" href="{$CONFIG['weburl']}layout/bootstrap-theme.min.css">
-	<link rel="stylesheet" href="{$CONFIG['weburl']}layout/style.css" type="text/css">
-	<meta name="viewport" content="width=1050, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+	<link rel="stylesheet" href="{$CONFIG['weburl']}layout/dashboard.css" type="text/css">
+	
 
 EOT;
 	if (isset($CONFIG['page_refresh']) && is_numeric($CONFIG['page_refresh'])) {
@@ -53,7 +53,7 @@ echo <<<EOT
 <body>
 
 	<div class="navbar navbar-fixed-top navbar-inverse" role="navigation">
-      <div class="container-fluid">
+      <div class="container">
         <div class="navbar-header">
           <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
             <span class="sr-only">Toggle navigation</span>
@@ -66,12 +66,21 @@ echo <<<EOT
         <div class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
             <li class="active"><a href="{$CONFIG['weburl']}">Home</a></li>
+			<li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown">Plugins <b class="caret"></b></a>
+              <ul class="dropdown-menu">
+EOT;
+					plugins_listLi($host, $selected_plugins);
+echo <<<EOT
+
+              </ul>
+            </li>
           </ul>
         </div><!-- /.nav-collapse -->
       </div><!-- /.container -->
     </div><!-- /.navbar -->
 
-<div id="content container-fluid">
+	<div class="container">
 
 EOT;
 }
@@ -94,9 +103,7 @@ function html_end() {
 
 	echo <<<EOT
 </div>
-<div id="footer">
-<hr><span class="small"><a href="http://pommi.nethuis.nl/category/cgp/" rel="external">Collectd Graph Panel</a> ({$version}) is distributed under the <a href="{$CONFIG['weburl']}doc/LICENSE" rel="licence">GNU General Public License (GPLv3)</a></span>
-</div>
+
 
 EOT;
 
@@ -119,6 +126,13 @@ EOT;
 	}
 
 echo <<<EOT
+	<div class="container">
+		<hr>
+		<span class="small">Modified version of the <a href="http://pommi.nethuis.nl/category/cgp/" rel="external">Collectd Graph Panel</a>. The Panel ({$version}) is distributed under the <a href="{$CONFIG['weburl']}doc/LICENSE" rel="licence">GNU General Public License (GPLv3)</a></span>
+	</div>
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+	<script src="{$CONFIG['weburl']}layout/bootstrap.min.js"></script>
 </body>
 </html>
 EOT;
@@ -134,16 +148,24 @@ function plugins_list($host, $selected_plugins = array()) {
 	global $CONFIG;
 
 	$plugins = collectd_plugins($host);
-
-	echo '<div class="">';
 	
 	echo '
-	
-   <div class="row">
 		<div class="col-sm-3 col-md-2 sidebar">
 		  <ul class="nav nav-sidebar">
 			
 	';
+			plugins_listLi($host, $selected_plugins);
+	echo '
+		  </ul>
+		</div>
+		<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+	';
+}
+
+function plugins_listLi($host, $selected_plugins = array()) {
+	global $CONFIG;
+
+	$plugins = collectd_plugins($host);
 	printf("<li %s><a href='%shost.php?h=%s'>Overview</a></li>\n",
 		selected_overview($selected_plugins),
 		$CONFIG['weburl'],
@@ -173,14 +195,6 @@ function plugins_list($host, $selected_plugins = array()) {
 			);
 		}
 	}
-	echo '
-		  </ul>
-		</div>
-	<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-	';
-	
-
-	echo '</div>';
 }
 
 function selected_overview($selected_plugins) {
@@ -209,8 +223,6 @@ function host_summary($cat, $hosts) {
 
 	$rrd = new RRDTool($CONFIG['rrdtool']);
 
-	printf('<fieldset id="%s">', $cat);
-	printf('<legend>%s</legend>', $cat);
 	echo "<table class=\"summary\">\n";
 
 	$row_style = array(0 => "even", 1 => "odd");
@@ -253,7 +265,6 @@ function host_summary($cat, $hosts) {
 	}
 
 	echo "</table>\n";
-	echo "</fieldset>\n";
 }
 
 

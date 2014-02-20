@@ -25,19 +25,16 @@ $seconds = GET('s');
 
 $selected_plugins = !$plugin ? $CONFIG['overview'] : array($plugin);
 
-html_start();
-
-printf('<fieldset id="%s">', $host);
-printf('<legend>%s</legend>', $host);
-
 $plugins = collectd_plugins($host);
+
+html_start($host, $selected_plugins);
 
 if(!$plugins) {
 	echo "Unknown host\n";
 	return false;
 }
 
-plugins_list($host, $selected_plugins);
+
 
 echo '';
 plugin_header($host, $plugin);
@@ -59,7 +56,6 @@ if ($CONFIG['graph_type'] == 'canvas') {
 	printf('<img src="%s%s">'."\n", $CONFIG['weburl'], build_url('graph.php', $_GET));
 }
 echo '</div>';
-echo "</fieldset>\n";
 
 html_end();
 
