@@ -131,7 +131,7 @@ echo <<<EOT
 		<span class="small">Modified version of the <a href="http://pommi.nethuis.nl/category/cgp/" rel="external">Collectd Graph Panel</a>. The Panel ({$version}) is distributed under the <a href="{$CONFIG['weburl']}doc/LICENSE" rel="licence">GNU General Public License (GPLv3)</a></span>
 	</div>
 
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 	<script src="{$CONFIG['weburl']}layout/bootstrap.min.js"></script>
 </body>
 </html>
