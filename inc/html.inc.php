@@ -21,7 +21,7 @@ function html_start($host, $selected_plugins = array()) {
 	<title>CGP{$path}</title>
 	<link rel="stylesheet" href="{$html_weburl}layout/style.css" type="text/css">
 	<link rel="stylesheet" href="{$html_weburl}layout/bootstrap.min.css">
-	<link rel="stylesheet" href="{$html_weburl}layout/bootstrap-theme.min.css">
+
 	<link rel="stylesheet" href="{$html_weburl}layout/dashboard.css" type="text/css">
 	
 	<meta name="viewport" content="initial-scale = 0.6,maximum-scale = 0.6" />
@@ -61,6 +61,11 @@ EOT;
 echo <<<EOT
 </head>
 <body>
+	<div class="github-fork-ribbon-wrapper hidden-xs">
+	  <div class="github-fork-ribbon">
+	    <a target="_blank" href="https://github.com/dbeuchler/CGPBootstrap">Fork me on GitHub</a>
+	  </div>
+	</div>
 
 	<div class="navbar navbar-fixed-top navbar-inverse" role="navigation">
       <div class="container">
@@ -114,10 +119,6 @@ function html_end($footer = false) {
 		}
 		echo <<<EOT
 </div>
-<div id="footer">
-<hr><span class="small"><a href="http://pommi.nethuis.nl/category/cgp/" rel="external">Collectd Graph Panel</a> ({$version}) is distributed under the <a href="{$html_weburl}doc/LICENSE" rel="license">GNU General Public License (GPLv3)</a></span>
-</div>
-
 
 EOT;
 	}

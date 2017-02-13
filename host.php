@@ -13,9 +13,6 @@ $selected_plugins = !$plugin ? $CONFIG['overview'] : array($plugin);
 
 html_start($host, $selected_plugins);
 
-printf("<fieldset id=\"%s\">", htmlentities($host));
-printf("<legend>%s</legend>", htmlentities($host));
-
 		echo <<<EOT
 <input type="checkbox" id="navicon" class="navicon" />
 <label for="navicon"></label>

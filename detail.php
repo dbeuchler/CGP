@@ -27,10 +27,8 @@ $seconds = GET('s');
 
 $selected_plugins = !$plugin ? $CONFIG['overview'] : array($plugin);
 
-$plugins = collectd_plugins($host);
+html_start();
 
-printf('<fieldset id="%s">', htmlentities($host));
-printf('<legend>%s</legend>', htmlentities($host));
 
 		echo <<<EOT
 <input type="checkbox" id="navicon" class="navicon" />
@@ -44,20 +42,27 @@ if (!$plugins = collectd_plugins($host)) {
 }
 
 
+echo '<div class="graphs">';
 plugin_header($host, $plugin);
 
 $args = GET();
-print '<ul class="time-range btn-group">' . "\n";
+print '<div class="time-range btn-group" role="group">' . "\n";
 foreach($CONFIG['term'] as $key => $s) {
 	$args['s'] = $s;
-	$selected = selected_timerange($seconds, $s);
-	printf('<li class="btn btn-default"><a %s href="%s%s">%s</a></li>'."\n",
+	if ($seconds == $s) {
+		$selected = 'active';
+	}
+	else {
+		$selected = '';
+	}
+
+	printf('<a class="btn btn-default %s" href="%s%s">%s</a>'."\n",
 		$selected,
 		htmlentities($CONFIG['weburl']),
 		htmlentities(build_url('detail.php', $args)),
 		htmlentities($key));
 }
-print "</ul><br />\n";
+print "<br /><br />\n";
 
 if ($CONFIG['graph_type'] == 'canvas') {
 	chdir($CONFIG['webdir']);
@@ -69,5 +74,6 @@ if ($CONFIG['graph_type'] == 'canvas') {
 	);
 }
 echo '</div>';
+echo "</fieldset>\n";
 
 html_end();
