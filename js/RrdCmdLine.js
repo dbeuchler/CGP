@@ -25,7 +25,6 @@
  * @constructor
  */
 var RrdCmdLine = function() {
-	// if (arguments.lenght === 3) // XXX
   this.init.apply(this, arguments);
 };
 
@@ -37,7 +36,7 @@ RrdCmdLine.prototype = {
 		this.graph = new RrdGraph(gfx, fetch);
 		this.cmdline(line);
 	},
-	cmdline: function(line) // FIXME
+	cmdline: function(line)
 	{
 		var i = 0;
 		line = line.replace(/\n/g," ");
@@ -48,81 +47,145 @@ RrdCmdLine.prototype = {
 			var arg = lines[i];
 			if (arg.charAt(0) === '"' && arg.charAt(arg.length-1) === '"')
 				arg = arg.substr(1,arg.length-2);
-			if (/^LINE[0-9.]+:/.test(arg)) {
-				this.parse_line(arg);
-			} else if (/^AREA:/.test(arg)) {
-				this.parse_area(arg);
-			} else if (/^DEF:/.test(arg)) {
-				this.parse_def(arg);
-			} else if (/^CDEF:/.test(arg)) {
-				this.parse_cdef(arg);
-			} else if (/^VDEF:/.test(arg)) {
-				this.parse_vdef(arg);
-			} else if (/^GPRINT:/.test(arg)) {
-				this.parse_gprint(arg);
-			} else if (/^COMMENT:/.test(arg)) {
-				this.parse_comment(arg);
-			} else if (/^VRULE:/.test(arg)) {
-				this.parse_vrule(arg);
-			} else if (/^HRULE:/.test(arg)) {
-				this.parse_hrule(arg);
-			} else if (/^TICK:/.test(arg)) {
-				this.parse_tick(arg);
-			} else if (/^TEXTALIGN:/.test(arg)) {
-				this.parse_textaling(arg);
-			} else if (/^SHIFT:/.test(arg)) {
-				this.parse_shift(arg);
-      } else if (arg.charAt(0) === '-') {
+			if (arg.substring(0,4) === 'LINE') {
+				this.parse_line(this.split(arg));
+			} else if (arg.substring(0,5) === 'AREA:') {
+				this.parse_area(this.split(arg));
+			} else if (arg.substring(0,4) === 'DEF:') {
+				this.parse_def(this.split(arg));
+			} else if (arg.substring(0,5) === 'CDEF:') {
+				this.parse_cdef(this.split(arg));
+			} else if (arg.substring(0,5) === 'VDEF:') {
+				this.parse_vdef(this.split(arg));
+			} else if (arg.substring(0,7) === 'GPRINT:') {
+				this.parse_gprint(this.split(arg));
+			} else if (arg.substring(0,8) === 'COMMENT:') {
+				this.parse_comment(this.split(arg));
+			} else if (arg.substring(0,6) === 'VRULE:') {
+				this.parse_vrule(this.split(arg));
+			} else if (arg.substring(0,6) === 'HRULE:') {
+				this.parse_hrule(this.split(arg));
+			} else if (arg.substring(0,5) === 'TICK:') {
+				this.parse_tick(this.split(arg));
+			} else if (arg.substring(0,10) === 'TEXTALIGN:') {
+				this.parse_textalign(this.split(arg));
+			} else if (arg.substring(0,6) === 'SHIFT:') {
+				this.parse_shift(this.split(arg));
+			} else if (arg.charAt(0) === '-') {
 				var strip = 1;
 				if (arg.length > 1 && arg.charAt(1) === '-') {
 					strip = 2;
 				}
 				var option = arg.substr(strip);
-				var value = undefined;
-
-				if (option.indexOf('=') !== -1) {
-					var index = option.indexOf('=');
-					value = option.substr(index+1);
-					option = option.substr(0,index);
-				} else if (i+1 < len) {
-					if (lines[i+1].charAt(0) !== '-' &&
-							!/^"?LINE[0-9.]+:/.test(lines[i+1]) &&
-							!/^"?AREA:/.test(lines[i+1]) &&
-							!/^"?DEF:/.test(lines[i+1]) &&
-							!/^"?CDEF:/.test(lines[i+1]) &&
-							!/^"?VDEF:/.test(lines[i+1]) &&
-							!/^"?GPRINT:/.test(lines[i+1]) &&
-							!/^"?COMMENT:/.test(lines[i+1]) &&
-							!/^"?HRULE:/.test(lines[i+1]) &&
-							!/^"?VRULE:/.test(lines[i+1]) &&
-							!/^"?TICK:/.test(lines[i+1]) &&
-							!/^"?TEXTALING:/.test(lines[i+1]) &&
-							!/^"?SHIFT:/.test(lines[i+1])
-							) {
-						i++;
+				/* try to parse a flag, otherwise assume --option=value */
+				if (!this.set_flag(option)) {
+					var value;
+					if (option.indexOf('=') !== -1) {
+						var index = option.indexOf('=');
+						value = option.substr(index + 1);
+						option = option.substr(0, index);
+					} else if (i + 1 < len) {
+						++i;
 						if (lines[i].charAt(0) === '"' && lines[i].charAt(lines[i].length-1) === '"')
 							value = lines[i].substr(1,lines[i].length-2);
 						else
 							value = lines[i];
 					}
+					this.set_option(option, value);
 				}
-				this.set_option(option, value);
 			} else {
-				throw "Unknow argument: "+arg;
+				throw "Unknown argument: "+arg;
 			}
 			i++;
 		}
-		var start_end = RrdTime.proc_start_end(this.graph.start_t, this.graph.end_t); // FIXME here?
+		var start_end = RrdTime.proc_start_end(this.graph.start_t, this.graph.end_t);
 		this.graph.start = start_end[0];
 		this.graph.end = start_end[1];
 	},
-	set_option: function(option, value)
-	{
-		switch(option) {
+	/** Returns true when the option is a flag that got consumed. */
+	set_flag: function(option) {
+		switch (option) {
 			case 'alt-autoscale':
 			case 'A':
 				this.graph.alt_autoscale = true;
-				break;
+				return true;
+			case 'full-size-mode':
+			case 'D':
+				this.graph.full_size_mode = true;
+				return true;
+			case 'slope-mode':
+			case 'E':
+				this.graph.slopemode = true;
+				return true;
+			case 'force-rules-legend':
+			case 'F':
+				this.graph.force_rules_legend = true;
+				return true;
+			case 'no-legend':
+			case 'g':
+				this.graph.no_legend = true;
+				return true;
+			case 'no-minor':
+			case 'I':
+				this.graph.no_minor = false;
+				return true;
+			case 'interlaced':
+			case 'i':
+				return true;
+			case 'alt-autoscale-min':
+			case 'J':
+				this.graph.alt_autoscale_min = true;
+				return true;
+			case 'only-graph':
+			case 'j':
+				this.graph.only_graph = true;
+				return true;
+			case 'alt-autoscale-max':
+			case 'M':
+				this.graph.alt_autoscale_max = true;
+				return true;
+			case 'no-gridfit':
+			case 'N':
+				this.graph.gridfit = true;
+				return true;
+			case 'logarithmic':
+			case 'o':
+				this.graph.logarithmic = true;
+				return true;
+			case 'pango-markup':
+			case 'P':
+				// im->with_markup = 1;
+				return true;
+			case 'rigid':
+			case 'r':
+				this.graph.rigid = true;
+				return true;
+			case 'alt-y-grid':
+			case 'Y':
+				this.graph.alt_ygrid = true;
+				return true;
+			case 'lazy':
+			case 'z':
+				this.graph.lazy = true;
+				return true;
+			case 'alt-y-mrtg':
+				return true;
+			case 'disable-rrdtool-tag':
+				this.graph.no_rrdtool_tag = true;
+				return true;
+			case 'dynamic-labels':
+				this.graph.dynamic_labels = true;
+				return true;
+			default:
+				/* unrecognized flag, maybe it is an option? */
+				return false;
+		}
+	},
+	set_option: function(option, value)
+	{
+		var args = value.split(':');
+		var index = value.indexOf(':');
+		switch(option) {
 			case 'base':
 			case 'b':
 				this.graph.base = parseInt(value, 10);
@@ -131,30 +194,18 @@ RrdCmdLine.prototype = {
 				break;
 			case 'color':
 			case 'c':
-				var index = value.indexOf('#');
+				index = value.indexOf('#');
 				if (index === -1)
 					throw "invalid color def format";
 				var name = value.substr(0,index);
 				if (!this.graph.GRC[name])
-					throw "invalid color name '"+name+"'"
+					throw "invalid color name '" + name + "'";
 				this.graph.GRC[name] = value.substr(index); // FIXME check color
-				break;
-			case 'full-size-mode':
-			case 'D':
-				this.graph.full_size_mode = true;
-				break;
-			case 'slope-mode':
-			case 'E':
-				this.graph.slopemode = true;
 				break;
 			case 'end':
 			case 'e':
 				this.graph.end_t = new RrdTime(value);
 //				this.graph.end = parseInt(value, 10);
-				break;
-			case 'force-rules-legend':
-			case 'F':
-				this.graph.force_rules_legend = true;
 				break;
 			case 'imginfo':
 			case 'f':
@@ -162,30 +213,11 @@ RrdCmdLine.prototype = {
 				break;
 			case 'graph-render-mode':
 			case 'G':
-			 // im->graph_antialias
-				break;
-			case 'no-legend':
-			case 'g':
-				this.graph.no_legend = true;
+				// im->graph_antialias
 				break;
 			case 'height':
 			case 'h':
 				this.graph.ysize = parseInt(value, 10);
-				break;
-			case 'no-minor':
-			case 'I':
-				this.graph.no_minor = false;
-				break;
-			case 'interlaced':
-			case 'i':
-				break;
-			case 'alt-autoscale-min':
-			case 'J':
-				this.graph.alt_autoscale_min = true;
-				break;
-			case 'only-graph':
-			case 'j':
-				this.graph.only_graph = true;
 				break;
 			case 'units-length':
 			case 'L':
@@ -194,11 +226,7 @@ RrdCmdLine.prototype = {
 				break;
 			case 'lower-limit':
 			case 'l':
-				this.graph.setminval = parseFloat(value)
-				break;
-			case 'alt-autoscale-max':
-			case 'M':
-				this.graph.alt_autoscale_max = true;
+				this.graph.setminval = parseFloat(value);
 				break;
 			case 'zoom':
 			case 'm':
@@ -206,40 +234,24 @@ RrdCmdLine.prototype = {
 				if (this.graph.zoom <= 0.0)
 					throw "zoom factor must be > 0";
 				break;
-			case 'no-gridfit':
-			case 'N':
-				this.graph.gridfit = true;
-				break;
 			case 'font':
 			case 'n':
-				var args = value.split(':');
 				if (args.length !== 3)
 					throw "invalid text property format";
 				if (!this.graph.TEXT[args[0]])
-					throw "invalid fonttag '"+args[0]+"'"
+					throw "invalid font tag '" + args[0] + "'";
 				if (args[1] > 0)
 					this.graph.TEXT[args[0]].size = args[1];
 				if (args[2])
 					this.graph.TEXT[args[0]].font = args[2];
 				break;
-			case 'logarithmic':
-			case 'o':
-				this.graph.logarithmic = true;
-				break;
-			case 'pango-markup':
-			case 'P':
-				// im->with_markup = 1;
-				break;
 			case 'font-render-mode':
 			case 'R':
 				// im->font_options: normal light mono
 				break;
-			case 'rigid':
-			case 'r':
-				this.graph.rigid = true;
-				break;
 			case 'step':
 				this.graph.step = parseInt(value, 10);
+				this.graph.step_orig = this.graph.step;
 				break;
 			case 'start':
 			case 's':
@@ -281,7 +293,6 @@ RrdCmdLine.prototype = {
 				if (value === 'none')  {
 					this.graph.draw_x_grid = false;
 				} else {
-					var args = value.split(':');
 					if (args.length !== 8)
 						throw "invalid x-grid format";
 					this.graph.xlab_user.gridtm = this.graph.tmt_conv(args[0]);
@@ -302,16 +313,11 @@ RrdCmdLine.prototype = {
 					this.graph.xlab_user.stst = this.graph.xlab_form;
 				}
 				break;
-			case 'alt-y-grid':
-			case 'Y':
-				this.graph.alt_ygrid = true;
-				break;
 			case 'y-grid':
 			case 'y':
 				if (value === 'none')  {
 					this.graph.draw_y_grid = false;
 				} else {
-					var index = value.indexOf(':');
 					if (index === -1)
 						throw "invalid y-grid format";
 					this.graph.ygridstep = parseFloat(value.substr(0,index));
@@ -322,10 +328,6 @@ RrdCmdLine.prototype = {
 						throw "label factor must be > 0";
 				}
 				break;
-			case 'lazy':
-			case 'z':
-				this.graph.lazy = 1;
-				break;
 			case 'units':
 				if (this.graph.force_units)
 					throw "--units can only be used once!";
@@ -334,13 +336,7 @@ RrdCmdLine.prototype = {
 				else
 					throw "invalid argument for --units: "+value;
 				break;
-			case 'alt-y-mrtg':
-				break;
-			case 'disable-rrdtool-tag':
-				this.graph.no_rrdtool_tag = true;
-				break;
 			case 'right-axis':
-				var index = value.indexOf(':');
 				if (index === -1)
 					throw "invalid right-axis format expected scale:shift";
 				this.graph.second_axis_scale = parseFloat(value.substr(0,index));
@@ -380,94 +376,257 @@ RrdCmdLine.prototype = {
 				this.graph.draw_3d_border = parseInt(value, 10);
 				break;
 			case 'grid-dash':
-				var index = value.indexOf(':');
 				if (index === -1)
 					throw "expected grid-dash format float:float";
 				this.graph.grid_dash_on = parseFloat(value.substr(0,index));
 				this.graph.grid_dash_off = parseFloat(value.substr(index+1));
 				break;
-			case 'dynamic-labels':
-				this.graph.dynamic_labels = true;
-				break;
 			default:
-				throw 'Unknow option "'+option+'"';
+				throw 'Unknown option "'+option+'"';
 		}
 
 	},
-	// DEF:<vname>=<rrdfile>:<ds-name>:<CF>[:step=<step>][:start=<time>][:end=<time>][:reduce=<CF>]
-	parse_def: function (line)
+	split: function (line)
 	{
-		var args = line.split(/:/);
-		var n=1;
-		var vnames = args[n++].split('=');
-		var vname = vnames[0];
-		var rrdfile = vnames[1];
-		var name = args[n++];
-		var cf = args[n++];
-		var step = undefined;
-		var reduce = undefined;
-		var start = undefined;
-		var end = undefined;
-		if (args.length > n) {
-			for (var j = n, xlen = args.length ; j < xlen ; j++) {
-				var opts = args[j].split("=");
-				if (opts[0] === "step") step = opts[1];
-				if (opts[0] === "reduce") reduce = opts[1]
-				if (opts[0] === "start") start = opts[1];
-				if (opts[0] === "end") end = opts[1];
+		return line.replace(/:/g,'\0').replace(/\\\0/g,':').split('\0');
+	},
+	// DEF:<vname>=<rrdfile>:<ds-name>:<CF>[:step=<step>][:start=<time>][:end=<time>][:reduce=<CF>]
+	parse_def: function (args)
+	{
+		if (args.length > 8)
+			throw "Too many options for DEF: "+args.join(':');
+		if (args.length < 4)
+			throw "Too few options for DEF: "+args.join(':');
+
+		var rrdfile;
+		var vname;
+		var index = args[1].indexOf('=');
+		if (index > 0) {
+			vname = args[1].substr(0, index);
+			rrdfile = args[1].substr(index+1);
+		} else {
+			throw "Missing '=' in DEF: "+args[1];
+		}
+		rrdfile = rrdfile.replace(/\\\\/g, '\\');
+
+		var name = args[2];
+		var cf = args[3];
+
+		var step, reduce, start, end;
+		if (args.length > 4) {
+			for (var n = 4; n == args.length; n++) {
+				if (args[n].substring(0,4) === "step") {
+					index = args[n].indexOf("=");
+					if (index > 0) {
+						step = args[n].substr(index+1);
+					} else {
+						throw "DEF step without value: "+args[n];
+					}
+				} else if (args[n].substring(0,6)  === "reduce") {
+					index = args[n].indexOf("=");
+					if (index > 0) {
+						reduce = args[n].substr(index+1);
+					} else {
+						throw "DEF step without value: "+args[n];
+					}
+				} else if (args[n].substring(0,5)  === "start") {
+					index = args[n].indexOf("=");
+					if (index > 0) {
+						start = args[n].substr(index+1);
+					} else {
+						throw "DEF step without value: "+args[n];
+					}
+				} else if (args[n].substring(0,3)  === "end") {
+					index = args[n].indexOf("=");
+					if (index > 0) {
+						end = args[n].substr(index+1);
+					} else {
+						throw "DEF end without value: "+args[n];
+					}
+				} else {
+					throw "Unknown DEF option: "+args[n];
+				}
 			}
 		}
-		this.graph.gdes_add_def(vname, rrdfile, name, cf, step, start, end, reduce)
+
+		this.graph.gdes_add_def(vname, rrdfile, name, cf, step, start, end, reduce);
 	},
 	// CDEF:vname=RPN expression
-	parse_cdef: function (line)
+	parse_cdef: function (args)
 	{
-		var args = line.split(/:|=/);
-		this.graph.gdes_add_cdef(args[1], args[2]);
+		var rpn, vname, index;
+
+		if (args.length != 2)
+			throw "Wrong options for CDEF: "+args.join(':');
+
+		index = args[1].indexOf('=');
+		if (index > 0) {
+			vname = args[1].substr(0, index);
+			rpn = args[1].substr(index+1);
+		} else {
+			throw "Missing '=' in CDEF: "+args[1];
+		}
+
+		this.graph.gdes_add_cdef(vname, rpn);
 	},
 	// VDEF:vname=RPN expression
-	parse_vdef: function (line)
+	parse_vdef: function (args)
 	{
-		var args = line.split(/:|=/);
-		this.graph.gdes_add_vdef(args[1], args[2]);
+		var rpn, vname, index;
+
+		if (args.length != 2)
+			throw "Wrong options for VDEF: "+args.join(':');
+
+		index = args[1].indexOf('=');
+		if (index > 0) {
+			vname = args[1].substr(0, index);
+			rpn = args[1].substr(index+1);
+		} else {
+			throw "Missing '=' in VDEF: "+args[1];
+		}
+
+		this.graph.gdes_add_vdef(vname, rpn);
 	},
 	// SHIFT:vname:offset
-	parse_shift: function (line)
+	parse_shift: function (args)
 	{
-		var args = line.split(':');
+		if (args.length != 3)
+			throw "Wrong options for SHIFT: "+args.join(':');
+
 		this.graph.gdes_add_shift(args[1], args[2]);
 	},
 	// LINE[width]:value[#color][:[legend][:STACK]][:dashes[=on_s[,off_s[,on_s,off_s]...]][:dash-offset=offset]]
-	parse_line: function (line)
+	parse_line: function (args)
 	{
-		var args = line.split(/#|:/);
-		var width = parseFloat(args[0].substr(4));
-		var stack = args[4] === 'STACK' ? true : undefined;
-		var color = this.graph.parse_color(args[2]);
-		this.graph.gdes_add_line(width, args[1], this.graph.color2rgba(color), args[3], stack);
+		if (args.length > 6)
+			throw "Too many options for LINE: "+args.join(':');
+		if (args.length < 2)
+			throw "Too few options for LINE: "+args.join(':');
+
+		var width = 1;
+		if (args[0].length > 4)
+			width = parseFloat(args[0].substr(4));
+
+		var color = undefined;
+		var value = args[1];
+		var index = args[1].indexOf('#');
+		if (index > 0) {
+			value = args[1].substr(0, index);
+			color = this.graph.parse_color(args[1].substr(index+1));
+			color = this.graph.color2rgba(color);
+		}
+
+		var stack = false;
+		var legend = undefined;
+		var dashes = undefined;
+		var dash_offset = undefined;
+		if (args.length == 3 && args[2] === 'STACK') {
+			stack = true;
+		} else if (args.length >= 3) {
+			legend = args[2];
+			for (var n = 3; n < args.length; n++) {
+				if (args[n] === 'STACK') {
+					stack = true;
+				} else if (args[n].substring(0,6) ===  'dashes') {
+					index = args[n].indexOf('=');
+					if (index > 0) {
+						dashes = args[n].substr(index+1).split(',');
+					} else {
+						dashes = [5];
+					}
+				} else if (args[n].substring(0,11) === 'dash-offset') {
+					index = args[n].indexOf('=');
+					if (index > 0) {
+						dash_offset = args[n].substr(index+1);
+					} else {
+						throw "LINE dash-offset without value: "+args[n];
+					}
+				} else {
+					throw "Unknown LINE option: "+args[n];
+				}
+			}
+		}
+
+		if (legend != undefined && legend.length === 0)
+			legend = undefined;
+
+		this.graph.gdes_add_line(width, value, color, legend, stack, dashes, dash_offset);
 	},
 	// AREA:value[#color][:[legend][:STACK]]
-	parse_area: function (line)
+	parse_area: function (args)
 	{
-		var args = line.split(/#|:/);
-		var stack = args[3] === 'STACK' ? true : undefined;
-		var color = this.graph.parse_color(args[2]);
-		this.graph.gdes_add_area(args[1], this.graph.color2rgba(color), stack);
+		if (args.length > 4)
+			throw "Too many options for AREA: "+args.join(':');
+		if (args.length < 2)
+			throw "Too few options for AREA: "+args.join(':');
+
+		var color = undefined;
+		var value = args[1];
+		var index = args[1].indexOf('#');
+		if (index > 0) {
+			value = args[1].substr(0, index);
+			color = this.graph.parse_color(args[1].substr(index+1));
+			color = this.graph.color2rgba(color);
+		}
+
+		var legend = undefined;
+		var stack = false;
+		if (args.length == 3) {
+			if (args[2] === 'STACK') {
+				stack = true;
+			} else {
+				legend = args[2];
+			}
+		} else if (args.length == 4) {
+			legend = args[2];
+			if (args[3] === 'STACK') {
+				stack = true;
+			} else {
+				throw "Unknown AREA option: "+args[3];
+			}
+		}
+
+		if (legend != undefined && legend.length === 0)
+			legend = undefined;
+
+		this.graph.gdes_add_area(value, color, legend, stack);
 	},
 	// TICK:vname#rrggbb[aa][:fraction[:legend]]
-	parse_tick: function (line)
+	parse_tick: function (args)
 	{
-		var args = line.split(/:|#/);
-		var color = this.graph.parse_color(args[2]);
-		this.graph.gdes_add_tick(args[1], this.graph.color2rgba(color), args[3], args[4]);
+		if (args.length > 4)
+			throw "Too many options for TICK: "+args.join(':');
+		if (args.length < 2)
+			throw "Too few options for TICK: "+args.join(':');
+
+		var color = undefined;
+		var vname = args[1];
+		var index = args[1].indexOf('#');
+		if (index > 0) {
+			vname = args[1].substr(0, index);
+			color = this.graph.parse_color(args[1].substr(index+1));
+			color = this.graph.color2rgba(color);
+		}
+		var fraction = undefined;
+		if (args.length >= 3 && args[2].length > 0)
+			fraction = parseFloat(args[2]);
+		var legend = undefined;
+		if (args.length == 4)
+			legend = args[3];
+
+		if (legend != undefined && legend.length === 0)
+			legend = undefined;
+
+		this.graph.gdes_add_tick(vname, color, fraction, legend);
 	},
-	// GPRINT:vname:format
-	parse_gprint: function(line)
+	// GPRINT:vname:format[:strftime]
+	// GPRINT:vname:cf:format[:strftime]
+	parse_gprint: function(args)
 	{
-		var args = line.split(':');
 		var strftime = false;
 		var vname = args[1];
 		var cf = args[2];
+
 		var format = "";
 		if (args.length > 3) {
 			var m=0;
@@ -487,27 +646,120 @@ RrdCmdLine.prototype = {
 		this.graph.gdes_add_gprint(vname, cf, format, strftime);
 	},
 	//COMMENT:text
-	parse_comment: function (line)
+	parse_comment: function (args)
 	{
-		var index = line.indexOf(':');
-		this.graph.gdes_add_comment(line.substr(index+1));
+		if (args.length < 2)
+			throw "Wrong options for COMMENT: "+args.join(':');
+
+		if (args.length > 2) {
+			args.shift();
+			this.graph.gdes_add_comment(args.join(':'));
+		} else {
+			this.graph.gdes_add_comment(args[1]);
+		}
 	},
 	// TEXTALIGN:{left|right|justified|center}
-	parse_textaling: function (line)
+	parse_textalign: function (args)
 	{
-		var index = line.indexOf(':');
-		this.graph.gdes_add_textaling(line.substr(index+1));
+		if (args.length != 2)
+			throw "Wrong options for TESTALIGN: "+args.join(':');
+
+		this.graph.gdes_add_textalign(args[1]);
 	},
 	// VRULE:time#color[:legend][:dashes[=on_s[,off_s[,on_s,off_s]...]][:dash-offset=offset]]
-	parse_vrule: function (line)
+	parse_vrule: function (args)
 	{
-		var args = line.split(/:|#/);
-		this.graph.gdes_add_vrule(args[1], '#'+args[2], args[3]);
+		if (args.length > 5)
+			throw "Too many options for VRULE: "+args.join(':');
+		if (args.length < 2)
+			throw "Too few options for VRULE: "+args.join(':');
+
+		var color = undefined;
+		var time = args[1];
+		var index = args[1].indexOf('#');
+		if (index > 0) {
+			time = args[1].substr(0, index);
+			color = this.graph.parse_color(args[1].substr(index+1));
+			color = this.graph.color2rgba(color);
+		}
+
+		var legend = undefined;
+		var dashes = undefined;
+		var dash_offset = undefined;
+		if (args.length >= 3) {
+			legend = args[2];
+			for (var n = 3; n < args.length; n++) {
+				if (args[n].substring(0,6) ===  'dashes') {
+					index = args[n].indexOf('=');
+					if (index > 0) {
+						dashes = args[n].substr(index+1).split(',');
+					} else {
+						dashes = [5];
+					}
+				} else if (args[n].substring(0,11) === 'dash-offset') {
+					index = args[n].indexOf('=');
+					if (index > 0) {
+						dash_offset = args[n].substr(index+1);
+					} else {
+						throw "VRULE dash-offset without value: "+args[n];
+					}
+				} else {
+					throw "Unknown VRULE option: "+args[n];
+				}
+			}
+		}
+
+		if (legend != undefined && legend.length === 0)
+			legend = undefined;
+
+		this.graph.gdes_add_vrule(time, color, legend, dashes, dash_offset);
 	},
 	// HRULE:value#color[:legend][:dashes[=on_s[,off_s[,on_s,off_s]...]][:dash-offset=offset]]
-	parse_hrule: function (line)
+	parse_hrule: function (args)
 	{
-		var args = line.split(/:|#/);
-		this.graph.gdes_add_hrule(args[1], '#'+args[2], args[3]);
+		if (args.length > 5)
+			throw "Too many options for HRULE: "+args.join(':');
+		if (args.length < 2)
+			throw "Too few options for HRULE: "+args.join(':');
+
+		var color = undefined;
+		var value = args[1];
+		var index = args[1].indexOf('#');
+		if (index > 0) {
+			value = args[1].substr(0, index);
+			color = this.graph.parse_color(args[1].substr(index+1));
+			color = this.graph.color2rgba(color);
+		}
+
+		var legend = undefined;
+		var dashes = undefined;
+		var dash_offset = undefined;
+		if (args.length >= 3) {
+			legend = args[2];
+			for (var n = 3; n < args.length; n++) {
+				if (args[n].substring(0,6) ===  'dashes') {
+					index = args[n].indexOf('=');
+					if (index > 0) {
+						dashes = args[n].substr(index+1).split(',');
+					} else {
+						dashes = [5];
+					}
+				} else if (args[n].substring(0,11) === 'dash-offset') {
+					index = args[n].indexOf('=');
+					if (index > 0) {
+						dash_offset = args[n].substr(index+1);
+					} else {
+						throw "HRULE dash-offset without value: "+args[n];
+					}
+				} else {
+					throw "Unknown HRULE option: "+args[n];
+				}
+			}
+		}
+
+		if (legend != undefined && legend.length === 0)
+			legend = undefined;
+
+		this.graph.gdes_add_hrule(value, color, legend, dashes, dash_offset);
 	}
 };

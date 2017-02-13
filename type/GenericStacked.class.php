@@ -1,8 +1,8 @@
 <?php
 
-require_once 'Default.class.php';
+require_once 'Base.class.php';
 
-class Type_GenericStacked extends Type_Default {
+class Type_GenericStacked extends Type_Base {
 
 	function rrd_gen_graph() {
 		$rrdgraph = $this->rrd_options();
@@ -49,17 +49,15 @@ class Type_GenericStacked extends Type_Default {
 
 		$c = 0;
 		foreach ($sources as $source) {
-			$dsname = empty($this->ds_names[$source]) ? $source : $this->ds_names[$source];
+			$legend = empty($this->legend[$source]) ? $source : $this->legend[$source];
 			$color = is_array($this->colors) ? (isset($this->colors[$source])?$this->colors[$source]:$this->colors[$c++]) : $this->colors;
-			$rrdgraph[] = sprintf('"LINE1:area_%s#%s:%s"', crc32hex($source), $this->validate_color($color), $this->rrd_escape($dsname));
-			$rrdgraph[] = sprintf('"GPRINT:min_%s:MIN:%s Min,"', crc32hex($source), $this->rrd_format);
-			$rrdgraph[] = sprintf('"GPRINT:avg_%s:AVERAGE:%s Avg,"', crc32hex($source), $this->rrd_format);
-			$rrdgraph[] = sprintf('"GPRINT:max_%s:MAX:%s Max,"', crc32hex($source), $this->rrd_format);
-			$rrdgraph[] = sprintf('"GPRINT:avg_%s:LAST:%s Last\\l"', crc32hex($source), $this->rrd_format);
+			$rrdgraph[] = sprintf('LINE1:area_%s#%s:%s', crc32hex($source), $this->validate_color($color), $this->rrd_escape($legend));
+			$rrdgraph[] = sprintf('GPRINT:min_%s:MIN:%s Min,', crc32hex($source), $this->rrd_format);
+			$rrdgraph[] = sprintf('GPRINT:avg_%s:AVERAGE:%s Avg,', crc32hex($source), $this->rrd_format);
+			$rrdgraph[] = sprintf('GPRINT:max_%s:MAX:%s Max,', crc32hex($source), $this->rrd_format);
+			$rrdgraph[] = sprintf('GPRINT:avg_%s:LAST:%s Last\\l', crc32hex($source), $this->rrd_format);
 		}
 
 		return $rrdgraph;
 	}
 }
-
-?>

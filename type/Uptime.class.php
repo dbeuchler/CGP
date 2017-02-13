@@ -1,8 +1,8 @@
 <?php
 
-require_once 'Default.class.php';
+require_once 'Base.class.php';
 
-class Type_Uptime extends Type_Default {
+class Type_Uptime extends Type_Base {
 
 	function rrd_gen_graph() {
 		$rrdgraph = $this->rrd_options();
@@ -41,24 +41,22 @@ class Type_Uptime extends Type_Default {
 
 		$c = 0;
 		foreach ($sources as $source) {
-			$dsname = empty($this->ds_names[$source]) ? $source : $this->ds_names[$source];
+			$legend = empty($this->legend[$source]) ? $source : $this->legend[$source];
 			$color = is_array($this->colors) ? (isset($this->colors[$source])?$this->colors[$source]:$this->colors[$c++]) : $this->colors;
 
 			//current value
-			$rrdgraph[] = sprintf('"LINE1:area_%s#%s:%s"', crc32hex($source), $this->validate_color($color), $this->rrd_escape($dsname));
-			$rrdgraph[] = sprintf('"GPRINT:c_avg_%s:LAST:%s days\\l"', crc32hex($source), $this->rrd_format);
+			$rrdgraph[] = sprintf('LINE1:area_%s#%s:%s', crc32hex($source), $this->validate_color($color), $this->rrd_escape($legend));
+			$rrdgraph[] = sprintf('GPRINT:c_avg_%s:LAST:%s days\\l', crc32hex($source), $this->rrd_format);
 
 			//max value
-			$rrdgraph[] = sprintf('"LINE1:v_max_%s#FF0000:Maximum:dashes"', crc32hex($source));
-			$rrdgraph[] = sprintf('"GPRINT:v_max_%s:%s days\\l"', crc32hex($source), $this->rrd_format);
+			$rrdgraph[] = sprintf('LINE1:v_max_%s#FF0000:Maximum:dashes', crc32hex($source));
+			$rrdgraph[] = sprintf('GPRINT:v_max_%s:%s days\\l', crc32hex($source), $this->rrd_format);
 
 			//avg value
-			$rrdgraph[] = sprintf('"LINE1:v_avg_%s#0000FF:Average:dashes"', crc32hex($source));
-			$rrdgraph[] = sprintf('"GPRINT:v_avg_%s:%s days\\l"', crc32hex($source), $this->rrd_format);
+			$rrdgraph[] = sprintf('LINE1:v_avg_%s#0000FF:Average:dashes', crc32hex($source));
+			$rrdgraph[] = sprintf('GPRINT:v_avg_%s:%s days\\l', crc32hex($source), $this->rrd_format);
 		}
 
 		return $rrdgraph;
 	}
 }
-
-?>

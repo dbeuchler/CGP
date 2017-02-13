@@ -28,6 +28,9 @@ var RrdGfxCanvas = function(canvasId)
 {
 	this.canvas = document.getElementById(canvasId);
 	this.ctx = this.canvas.getContext('2d');
+	this.dash = false;
+	this.dash_offset = null;
+	this.dash_array = null;
 };
 
 RrdGfxCanvas.prototype.size = function (width, height)
@@ -38,7 +41,22 @@ RrdGfxCanvas.prototype.size = function (width, height)
 
 RrdGfxCanvas.prototype.set_dash = function (dashes, n, offset)
 {
+	this.dash = true;
+	this.dash_array = dashes;
+	this.dash_offset = offset;
+};
 
+RrdGfxCanvas.prototype._set_dash = function ()
+{
+	if (this.dash_array != undefined && this.dash_array.length > 0) {
+		this.ctx.setLineDash(this.dash_array);
+		if (this.dash_offset > 0) {
+			this.ctx.lineDashOffset = this.dash_offset;
+		}
+	}
+	this.dash = false;
+	this.dash_array = null;
+	this.dash_offset = 0;
 };
 
 RrdGfxCanvas.prototype.line = function (X0, Y0, X1, Y1, width, color)
@@ -57,7 +75,8 @@ RrdGfxCanvas.prototype.line = function (X0, Y0, X1, Y1, width, color)
 	}
 	this.ctx.save();
 	this.ctx.lineWidth = width;
-	this.ctx.strokeStyle = color
+	this.ctx.strokeStyle = color;
+	if (this.dash) this._set_dash();
 	this.ctx.beginPath();
 	this.ctx.moveTo(X0, Y0);
 	this.ctx.lineTo(X1, Y1);
@@ -67,6 +86,7 @@ RrdGfxCanvas.prototype.line = function (X0, Y0, X1, Y1, width, color)
 
 RrdGfxCanvas.prototype.dashed_line = function (X0, Y0, X1, Y1, width, color, dash_on, dash_off)
 {
+	var swap, n;
 	X0 = Math.round(X0);
 	Y0 = Math.round(Y0);
 	X1 = Math.round(X1);
@@ -75,18 +95,31 @@ RrdGfxCanvas.prototype.dashed_line = function (X0, Y0, X1, Y1, width, color, das
 	this.ctx.save();
 	this.ctx.lineWidth = width;
 	this.ctx.strokeStyle = color;
-
+	this.ctx.setLineDash([ dash_on, dash_off ]);
+	this.ctx.lineDashOffset = dash_on;
 	this.ctx.beginPath();
+
+	if (Y0 === Y1) {
+		Y0 += 0.5;
+		Y1 += 0.5;
+	} else if (X0 === X1) {
+		X0 += 0.5;
+		X1 += 0.5;
+	}
+
+	this.ctx.moveTo(X0, Y0);
+	this.ctx.lineTo(X1, Y1);
+/*
 	if (Y0 === Y1) {
 		Y0 += 0.5;
 		Y1 += 0.5;
 		if (X0 > X1) {
-			var swap = X0;
+			swap = X0;
 			X0 = X1;
 			X1 = swap;
 		}
 		this.ctx.moveTo(X0, Y0);
-		var n=0;
+		n = 0;
 		while(X0<=X1) {
 			if (n%2 === 1) {
 				X0 += dash_on;
@@ -101,12 +134,12 @@ RrdGfxCanvas.prototype.dashed_line = function (X0, Y0, X1, Y1, width, color, das
 		X0 += 0.5;
 		X1 += 0.5;
 		if (Y0 > Y1) {
-			var swap = Y0;
+			swap = Y0;
 			Y0 = Y1;
 			Y1 = swap;
 		}
 		this.ctx.moveTo(X0, Y0);
-		var n=0;
+		n = 0;
 		while(Y0<=Y1) {
 			if (n%2 === 1) {
 				Y0 += dash_on;
@@ -122,6 +155,7 @@ RrdGfxCanvas.prototype.dashed_line = function (X0, Y0, X1, Y1, width, color, das
 		this.ctx.moveTo(X0, Y0);
 		this.ctx.lineTo(X1, Y1);
 	}
+*/
 	this.ctx.stroke();
 	this.ctx.restore();
 };
@@ -135,6 +169,7 @@ RrdGfxCanvas.prototype.rectangle = function (X0, Y0, X1, Y1, width, style)
 
 	this.ctx.save();
 	this.ctx.beginPath();
+	if (this.dash) this._set_dash();
 	this.ctx.lineWidth = width;
 	this.ctx.moveTo(X0, Y0);
 	this.ctx.lineTo(X1, Y0);
@@ -178,6 +213,7 @@ RrdGfxCanvas.prototype.stroke_begin = function (width, style)
 {
 	this.ctx.save();
 	this.ctx.beginPath();
+	if (this.dash) this._set_dash();
 	this.ctx.lineWidth = width;
 	this.ctx.strokeStyle = style;
 	this.ctx.lineCap = 'round';
@@ -201,7 +237,7 @@ RrdGfxCanvas.prototype.lineTo = function (x,y)
 {
 	x = Math.round(x)+0.5;
 	y = Math.round(y)+0.5;
-	this.ctx.lineTo(x, y)
+	this.ctx.lineTo(x, y);
 };
 
 RrdGfxCanvas.prototype.text = function (x, y, color, font, tabwidth, angle, h_align, v_align, text)
@@ -210,7 +246,7 @@ RrdGfxCanvas.prototype.text = function (x, y, color, font, tabwidth, angle, h_al
 	y = Math.round(y);
 
 	this.ctx.save();
-	this.ctx.font = font.size+'px '+"'"+font.font+"'";
+	this.ctx.font = font.size+'px '+font.font;
 
 	switch (h_align) {
 		case RrdGraph.GFX_H_LEFT:
@@ -246,7 +282,7 @@ RrdGfxCanvas.prototype.text = function (x, y, color, font, tabwidth, angle, h_al
 RrdGfxCanvas.prototype.get_text_width = function(start, font, tabwidth, text)
 {
 	this.ctx.save();
-	this.ctx.font = font.size+"px "+font.font;
+	this.ctx.font = font.size+'px '+font.font;
 	var width = this.ctx.measureText(text);
 	this.ctx.restore();
 	return width.width;

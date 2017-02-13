@@ -9,15 +9,39 @@ function collectd_hosts() {
 	global $CONFIG;
 
 	if (!is_dir($CONFIG['datadir']))
-		return false;
+		return array();
 
 	$dir = array_diff(scandir($CONFIG['datadir']), array('.', '..'));
 	foreach($dir as $k => $v) {
 		if(!is_dir($CONFIG['datadir'].'/'.$v))
 			unset($dir[$k]);
 	}
-	return($dir);
+
+	return $dir;
 }
+
+
+# return files in directory. this will recurse into subdirs
+# infinite loop may occur
+function get_host_rrd_files($dir) {
+	$files = array();
+
+	$objects = new RegexIterator(
+		new RecursiveIteratorIterator(
+		new RecursiveDirectoryIterator($dir),
+		RecursiveIteratorIterator::SELF_FIRST),
+		'/\.rrd$/');
+
+	foreach($objects as $object) {
+		$relativePathName = str_replace($dir.'/', '', $object->getPathname());
+		if (!preg_match('/^.+\/.+\.rrd$/', $relativePathName))
+			continue;
+		$files[] = $relativePathName;
+	}
+
+	return $files;
+}
+
 
 # returns an array of plugins/pinstances/types/tinstances
 function collectd_plugindata($host, $plugin=NULL) {
@@ -26,9 +50,8 @@ function collectd_plugindata($host, $plugin=NULL) {
 	if (!is_dir($CONFIG['datadir'].'/'.$host))
 		return false;
 
-	chdir($CONFIG['datadir'].'/'.$host);
-	$files = glob("*/*.rrd");
-	if (!$files)
+	$hostdir = $CONFIG['datadir'].'/'.$host;
+	if (!$files = get_host_rrd_files($hostdir))
 		return false;
 
 	$data = array();
@@ -62,20 +85,22 @@ function collectd_plugindata($host, $plugin=NULL) {
 		$data = $pdata;
 	}
 
-	return($data);
+	return $data ? $data : false;
 }
 
 # returns an array of all plugins of a host
 function collectd_plugins($host) {
-	$plugindata = collectd_plugindata($host);
+	if (!$plugindata = collectd_plugindata($host))
+		return false;
 
 	$plugins = array();
 	foreach ($plugindata as $item) {
 		if (!in_array($item['p'], $plugins))
 			$plugins[] = $item['p'];
 	}
+	sort($plugins);
 
-	return $plugins;
+	return $plugins ? $plugins : false;
 }
 
 # returns an array of all pi/t/ti of an plugin
@@ -84,7 +109,8 @@ function collectd_plugindetail($host, $plugin, $detail, $where=NULL) {
 	if (!in_array($detail, $details))
 		return false;
 
-	$plugindata = collectd_plugindata($host);
+	if (!$plugindata = collectd_plugindata($host))
+		return false;
 
 	$return = array();
 	foreach ($plugindata as $item) {
@@ -104,10 +130,7 @@ function collectd_plugindetail($host, $plugin, $detail, $where=NULL) {
 		}
 	}
 
-	if (empty($return))
-		return false;
-
-	return $return;
+	return $return ? $return : false;
 }
 
 # group plugin files for graph generation
@@ -119,10 +142,11 @@ function group_plugindata($plugindata) {
 	foreach ($plugindata as $item) {
 		# backwards compatibility
 		if ($CONFIG['version'] >= 5 || !preg_match('/^(df|interface)$/', $item['p']))
-			if (
-				$item['p'] != 'libvirt' &&
-				($item['p'] != 'snmp' && $item['t'] != 'if_octets')
-			)
+			if (!(
+				$item['p'] == 'libvirt'
+				|| ($item['p'] == 'snmp' && $item['t'] == 'if_octets')
+				|| ($item['p'] == 'vmem' && $item['t'] == 'vmpage_io')
+			))
 				unset($item['ti']);
 		$data[] = $item;
 	}
@@ -149,120 +173,33 @@ function plugin_sort($data) {
 	return $data;
 }
 
-# generate graph url's for a plugin of a host
-function graphs_from_plugin($host, $plugin, $overview=false) {
-	global $CONFIG;
+function parse_typesdb_file($file = array('/usr/share/collectd/types.db')) {
+	if (!is_array($file))
+		$file = array($file);
+	if (!file_exists($file[0]))
+		$file[0] = 'inc/types.db';
 
-	$plugindata = collectd_plugindata($host, $plugin);
-	$plugindata = group_plugindata($plugindata);
-	$plugindata = plugin_sort($plugindata);
-
-	foreach ($plugindata as $items) {
-
-		if (
-			$overview && isset($CONFIG['overview_filter'][$plugin]) &&
-			$CONFIG['overview_filter'][$plugin] !== array_intersect_assoc($CONFIG['overview_filter'][$plugin], $items)
-		) {
+	$types = array();
+	foreach ($file as $single_file)
+	{
+		if (!file_exists($single_file))
 			continue;
-		}
+		foreach (file($single_file) as $type) {
+			if(!preg_match('/^(?P<dataset>[\w_]+)\s+(?P<datasources>.*)/', $type, $matches))
+				continue;
+			$dataset = $matches['dataset'];
+			$datasources = explode(', ', $matches['datasources']);
 
-		$items['h'] = $host;
-
-		$time = array_key_exists($plugin, $CONFIG['time_range'])
-			? $CONFIG['time_range'][$plugin]
-			: $CONFIG['time_range']['default'];
-
-		if ($CONFIG['graph_type'] == 'canvas') {
-			chdir($CONFIG['webdir']);
-			isset($items['p']) ? $_GET['p'] = $items['p'] : $_GET['p'] = '';
-			isset($items['pi']) ? $_GET['pi'] = $items['pi'] : $_GET['pi'] = '';
-			isset($items['t']) ? $_GET['t'] = $items['t'] : $_GET['t'] = '';
-			isset($items['ti']) ? $_GET['ti'] = $items['ti'] : $_GET['ti'] = '';
-			include $CONFIG['webdir'].'/plugin/'.$plugin.'.php';
-		} else {
-			printf('<a href="%s%s"><img src="%s%s"></a>'."\n",
-				$CONFIG['weburl'],
-				build_url('detail.php', $items, $time),
-				$CONFIG['weburl'],
-				build_url('graph.php', $items, $time)
-			);
+			foreach ($datasources as $ds) {
+				if (!preg_match('/^(?P<dsname>\w+):(?P<dstype>[\w]+):(?P<min>[\-\dU\.]+):(?P<max>[\dU\.]+)/', $ds, $matches))
+					error_log(sprintf('CGP Error: DS "%s" from dataset "%s" did not match', $ds, $dataset));
+				$types[$dataset][$matches['dsname']] = array(
+					'dstype' => $matches['dstype'],
+					'min' => $matches['min'],
+					'max' => $matches['max'],
+				);
+			}
 		}
 	}
+	return $types;
 }
-
-# generate an url with GET values from $items
-function build_url($base, $items, $s=NULL) {
-	global $CONFIG;
-
-	if (!is_array($items))
-		return false;
-
-	if (!is_numeric($s))
-		$s = $CONFIG['time_range']['default'];
-
-	$i=0;
-	foreach ($items as $key => $value) {
-		# don't include empty values
-		if ($value == 'NULL')
-			continue;
-
-		$base .= sprintf('%s%s=%s', $i==0 ? '?' : '&', $key, $value);
-		$i++;
-	}
-	if (!isset($items['s']))
-		$base .= '&s='.$s;
-
-	return $base;
-}
-
-# tell collectd to FLUSH all data of the identifier(s)
-function collectd_flush($identifier) {
-	global $CONFIG;
-
-	if (!$CONFIG['socket'])
-		return FALSE;
-
-	if (!$identifier || (is_array($identifier) && count($identifier) == 0) ||
-			!(is_string($identifier) || is_array($identifier)))
-		return FALSE;
-
-	$u_errno  = 0;
-	$u_errmsg = '';
-	if ($socket = @fsockopen($CONFIG['socket'], 0, $u_errno, $u_errmsg)) {
-		$cmd = 'FLUSH plugin=rrdtool';
-		if (is_array($identifier)) {
-			foreach ($identifier as $val)
-				$cmd .= sprintf(' identifier="%s"', $val);
-		} else
-			$cmd .= sprintf(' identifier="%s"', $identifier);
-		$cmd .= "\n";
-
-		$r = fwrite($socket, $cmd, strlen($cmd));
-		if ($r === false || $r != strlen($cmd)) {
-			error_log(sprintf('ERROR: Failed to write full command to unix-socket: %d out of %d written',
-				$r === false ? -1 : $r, strlen($cmd)));
-			return FALSE;
-		}
-
-		$resp = fgets($socket);
-		if ($resp === false) {
-			error_log(sprintf('ERROR: Failed to read response from collectd for command: %s',
-				trim($cmd)));
-			return FALSE;
-		}
-
-		$n = (int)$resp;
-		while ($n-- > 0)
-			fgets($socket);
-
-		fclose($socket);
-
-		return TRUE;
-	} else {
-		error_log(sprintf('ERROR: Failed to open unix-socket to collectd: %d: %s',
-			$u_errno, $u_errmsg));
-		return FALSE;
-	}
-}
-
-?>

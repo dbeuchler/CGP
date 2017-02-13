@@ -11,17 +11,18 @@ function html_start($host, $selected_plugins = array()) {
 	global $CONFIG;
 
 	$path = htmlentities(breadcrumbs());
-	
+	$html_weburl = htmlentities($CONFIG['weburl']);
+
 	echo <<<EOT
 <!DOCTYPE html>
 <html>
 <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta charset="utf-8">
 	<title>CGP{$path}</title>
-	
-	<link rel="stylesheet" href="{$CONFIG['weburl']}layout/bootstrap.min.css">
-	<link rel="stylesheet" href="{$CONFIG['weburl']}layout/bootstrap-theme.min.css">
-	<link rel="stylesheet" href="{$CONFIG['weburl']}layout/dashboard.css" type="text/css">
+	<link rel="stylesheet" href="{$html_weburl}layout/style.css" type="text/css">
+	<link rel="stylesheet" href="{$html_weburl}layout/bootstrap.min.css">
+	<link rel="stylesheet" href="{$html_weburl}layout/bootstrap-theme.min.css">
+	<link rel="stylesheet" href="{$html_weburl}layout/dashboard.css" type="text/css">
 	
 	<meta name="viewport" content="initial-scale = 0.6,maximum-scale = 0.6" />
 
@@ -35,16 +36,24 @@ EOT;
 
 	if ($CONFIG['graph_type'] == 'canvas') {
 		echo <<<EOT
-	<script type="text/javascript" src="{$CONFIG['weburl']}js/sprintf.js"></script>
-	<script type="text/javascript" src="{$CONFIG['weburl']}js/strftime.js"></script>
-	<script type="text/javascript" src="{$CONFIG['weburl']}js/RrdRpn.js"></script>
-	<script type="text/javascript" src="{$CONFIG['weburl']}js/RrdTime.js"></script>
-	<script type="text/javascript" src="{$CONFIG['weburl']}js/RrdGraph.js"></script>
-	<script type="text/javascript" src="{$CONFIG['weburl']}js/RrdGfxCanvas.js"></script>
-	<script type="text/javascript" src="{$CONFIG['weburl']}js/binaryXHR.js"></script>
-	<script type="text/javascript" src="{$CONFIG['weburl']}js/rrdFile.js"></script>
-	<script type="text/javascript" src="{$CONFIG['weburl']}js/RrdDataFile.js"></script>
-	<script type="text/javascript" src="{$CONFIG['weburl']}js/RrdCmdLine.js"></script>
+	<script type="text/javascript" src="{$html_weburl}js/sprintf.js"></script>
+	<script type="text/javascript" src="{$html_weburl}js/strftime.js"></script>
+	<script type="text/javascript" src="{$html_weburl}js/RrdRpn.js"></script>
+	<script type="text/javascript" src="{$html_weburl}js/RrdTime.js"></script>
+	<script type="text/javascript" src="{$html_weburl}js/RrdGraph.js"></script>
+	<script type="text/javascript" src="{$html_weburl}js/RrdGfxCanvas.js"></script>
+	<script type="text/javascript" src="{$html_weburl}js/binaryXHR.js"></script>
+	<script type="text/javascript" src="{$html_weburl}js/rrdFile.js"></script>
+	<script type="text/javascript" src="{$html_weburl}js/RrdDataFile.js"></script>
+	<script type="text/javascript" src="{$html_weburl}js/RrdCmdLine.js"></script>
+
+EOT;
+	}
+
+	if ($CONFIG['showtime']) {
+		echo <<<EOT
+	<script type="text/javascript" src="{$html_weburl}js/jquery-2.1.1.min.js"></script>
+	<script type="text/javascript" src="{$html_weburl}js/jquery.timeago.js"></script>
 
 EOT;
 	}
@@ -86,43 +95,45 @@ echo <<<EOT
 EOT;
 }
 
-function html_end() {
+function html_end($footer = false) {
 	global $CONFIG;
+	$html_weburl = htmlentities($CONFIG['weburl']);
 
-	$git = '/usr/bin/git';
-	$changelog = $CONFIG['webdir'].'/doc/CHANGELOG';
+	if ($footer) {
+		$git = '/usr/bin/git';
+		$changelog = $CONFIG['webdir'].'/doc/CHANGELOG';
 
-	$version = 'v?';
-	if (file_exists($git) && is_dir($CONFIG['webdir'].'/.git')) {
-		chdir($CONFIG['webdir']);
-		$version = exec($git.' describe --tags');
-	} elseif (file_exists($changelog)) {
-		$changelog = file($changelog);
-		$version = explode(' ', $changelog[0]);
-		$version = 'v'.$version[0];
-	}
-	echo <<<EOT
+		$version = 'v?';
+		if (file_exists($git) && is_dir($CONFIG['webdir'].'/.git')) {
+			chdir($CONFIG['webdir']);
+			$version = exec($git.' describe --tags');
+		} elseif (file_exists($changelog)) {
+			$changelog = file($changelog);
+			$version = explode(' ', $changelog[0]);
+			$version = 'v'.$version[0];
+		}
+		echo <<<EOT
+</div>
+<div id="footer">
+<hr><span class="small"><a href="http://pommi.nethuis.nl/category/cgp/" rel="external">Collectd Graph Panel</a> ({$version}) is distributed under the <a href="{$html_weburl}doc/LICENSE" rel="license">GNU General Public License (GPLv3)</a></span>
 </div>
 
 
 EOT;
-
+	}
 	if ($CONFIG['graph_type'] == 'canvas') {
-		echo <<<EOT
-<script type="text/javascript" src="{$CONFIG['weburl']}js/CGP.js"></script>
-
-EOT;
 		if ($CONFIG['rrd_fetch_method'] == 'async') {
-		echo <<<EOT
-<script type="text/javascript" src="{$CONFIG['weburl']}js/CGP-async.js"></script>
-
-EOT;
+			$js_async = 'true';
 		} else {
+			$js_async = 'false';
+		}
 		echo <<<EOT
-<script type="text/javascript" src="{$CONFIG['weburl']}js/CGP-sync.js"></script>
+<script src="{$html_weburl}js/CGP.js"></script>
+<script>
+CGP.drawAll($js_async);
+</script>
 
 EOT;
-		}
 	}
 
 echo <<<EOT
@@ -141,7 +152,11 @@ EOT;
 function plugin_header($host, $plugin) {
 	global $CONFIG;
 
-	return printf("<h2><a href='%shost.php?h=%s&p=%s'>%s</a></h2>\n", $CONFIG['weburl'], $host, $plugin, $plugin);
+	printf("<h2><a href=\"%shost.php?h=%s&amp;p=%s\">%s</a></h2>\n",
+		htmlentities($CONFIG['weburl']),
+		urlencode($host),
+		urlencode($plugin),
+		htmlentities($plugin));
 }
 
 
@@ -151,8 +166,8 @@ function plugins_list($host, $selected_plugins = array()) {
 	$plugins = collectd_plugins($host);
 	printf("<li %s><a href='%shost.php?h=%s'>Overview</a></li>\n",
 		selected_overview($selected_plugins),
-		$CONFIG['weburl'],
-		$host
+		htmlentities($CONFIG['weburl']),
+		urlencode($host)
 	);
 	
 	# first the ones defined as ordered
@@ -160,9 +175,10 @@ function plugins_list($host, $selected_plugins = array()) {
 		if (in_array($plugin, $plugins)) {
 			printf("<li %s ><a href='%shost.php?h=%s&p=%s'>%4\$s</a></li>\n",
 				selected_plugin($plugin, $selected_plugins),
-				$CONFIG['weburl'],
-				$host,
-				$plugin
+				htmlentities($CONFIG['weburl']),
+				urlencode($host),
+				urlencode($plugin),
+				htmlentities($plugin)
 			);
 		}
 	}
@@ -172,9 +188,10 @@ function plugins_list($host, $selected_plugins = array()) {
 		if (!in_array($plugin, $CONFIG['overview'])) {
 			printf("<li %s ><a href='%shost.php?h=%s&p=%s'>%4\$s</a></li>\n",
 				selected_plugin($plugin, $selected_plugins),
-				$CONFIG['weburl'],
-				$host,
-				$plugin
+				htmlentities($CONFIG['weburl']),
+				urlencode($host),
+				urlencode($plugin),
+				htmlentities($plugin)
 			);
 		}
 	}
@@ -214,57 +231,162 @@ function host_summary($cat, $hosts) {
 	foreach($hosts as $host) {
 		$host_counter++;
 
-		$cores = count(group_plugindata(collectd_plugindata($host, 'cpu')));
+		printf('<div class="row %s">', $row_style[$host_counter % 2]);
+		printf('<label><a href="%shost.php?h=%s">%s</a></label>',
+			htmlentities($CONFIG['weburl']),
+			urlencode($host),
+			htmlentities($host));
 
-		printf('<tr class="%s">', $row_style[$host_counter % 2]);
-		printf('<th><a href="%shost.php?h=%s">%s</a></th>',
-			$CONFIG['weburl'],$host, $host);
+		echo "<div class=\"hostinfo\">";
 
 		if ($CONFIG['showload']) {
-			collectd_flush(sprintf('%s/load/load', $host));
+			require_once 'type/Default.class.php';
+			$load = array('h' => $host, 'p' => 'load', 't' => 'load');
+			$obj = new Type_Default($CONFIG, $load);
+			$obj->collectd_flush();
+
 			$rrd_info = $rrd->rrd_info($CONFIG['datadir'].'/'.$host.'/load/load.rrd');
 
-			# ignore if file does not exist
-			if (!$rrd_info)
-				continue;
-
-			if (isset($rrd_info['ds[shortterm].last_ds']) &&
+			if ($rrd_info &&
+				isset($rrd_info['ds[shortterm].last_ds']) &&
 				isset($rrd_info['ds[midterm].last_ds']) &&
 				isset($rrd_info['ds[longterm].last_ds'])) {
+
+				$cores = count(group_plugindata(collectd_plugindata($host, 'cpu')));
 
 				foreach (array('ds[shortterm].last_ds', 'ds[midterm].last_ds', 'ds[longterm].last_ds') as $info) {
 					$class = '';
 					if ($cores > 0 && $rrd_info[$info] > $cores * 2)
-						$class = ' class="crit"';
+						$class = ' crit';
 					elseif ($cores > 0 && $rrd_info[$info] > $cores)
-						$class = ' class="warn"';
+						$class = ' warn';
 
-					printf('<td%s>%.2f</td>', $class, $rrd_info[$info]);
+					printf('<div class="field%s">%.2f</div>', $class, $rrd_info[$info]);
 				}
 			}
 		}
 
-		print "</tr>\n";
+		if ($CONFIG['showmem']) {
+			$rrd_info_mu = $rrd->rrd_info($CONFIG['datadir'].'/'.$host.'/memory/memory-used.rrd');
+			$rrd_info_mf = $rrd->rrd_info($CONFIG['datadir'].'/'.$host.'/memory/memory-free.rrd');
+			$rrd_info_bf = $rrd->rrd_info($CONFIG['datadir'].'/'.$host.'/memory/memory-buffered.rrd');
+			$rrd_info_ca = $rrd->rrd_info($CONFIG['datadir'].'/'.$host.'/memory/memory-cached.rrd');
+
+			# ignore if file does not exist
+			if ($rrd_info_mu && $rrd_info_mf && $rrd_info_bf && $rrd_info_ca) {
+				$info='ds[value].last_ds';
+				if (isset($rrd_info_mu[$info]) && isset($rrd_info_mf[$info]) && isset($rrd_info_bf[$info]) && isset($rrd_info_ca[$info]) ) {
+					$percent_mem =	$rrd_info_mu[$info] * 100 / ($rrd_info_mu[$info] + $rrd_info_mf[$info] + $rrd_info_bf[$info] + $rrd_info_ca[$info]);
+
+					$class = '';
+					if ($percent_mem > 90)
+						$class = ' crit';
+					elseif ($percent_mem > 70)
+						$class = ' warn';
+
+					printf('<div class="field%s">%d%%</div>', $class, $percent_mem);
+				}
+			}
+		}
+
+		if ($CONFIG['showtime']) {
+			$rrd_info = $rrd->rrd_info($CONFIG['datadir'].'/'.$host.'/load/load.rrd');
+			if ($rrd_info) {
+				$time = time() - $rrd_info['last_update'];
+
+				$class = 'wide';
+				if ($time > 300)
+					$class .= ' crit';
+				elseif ($time > 60)
+					$class .= ' warn';
+
+				printf('<div class="field %s"><time class="timeago" datetime="%s">%d seconds ago</time></div>',
+					$class, date('c', $rrd_info['last_update']), $time);
+			}
+		}
+
+		print "</div></div>\n";
 	}
 
-	echo "</table>\n";
+	echo "</div>\n";
 }
 
 
 function breadcrumbs() {
 	$path = '';
-	if (validate_get(GET('h'), 'host'))
+	if (GET('h'))
 		$path .= ' - '.ucfirst(GET('h'));
-	if (validate_get(GET('p'), 'plugin'))
+	if (GET('p'))
 		$path .= ' - '.ucfirst(GET('p'));
-	if (validate_get(GET('pi'), 'pinstance'))
+	if (GET('pi'))
 		$path .= ' - '.GET('pi');
-	if (validate_get(GET('t'), 'type') && validate_get(GET('p'), 'plugin') && GET('t') != GET('p'))
+	if (GET('t') && GET('p') && GET('t') != GET('p'))
 		$path .= ' - '.GET('t');
-	if (validate_get(GET('ti'), 'tinstance'))
+	if (GET('ti'))
 		$path .= ' - '.GET('ti');
 
 	return $path;
 }
 
-?>
+# generate graph url's for a plugin of a host
+function graphs_from_plugin($host, $plugin, $overview=false) {
+	global $CONFIG;
+
+	if (!$plugindata = collectd_plugindata($host, $plugin))
+		return false;
+	if (!$plugindata = group_plugindata($plugindata))
+		return false;
+	if (!$plugindata = plugin_sort($plugindata))
+		return false;
+
+	foreach ($plugindata as $items) {
+
+		if (
+			$overview && isset($CONFIG['overview_filter'][$plugin]) &&
+			$CONFIG['overview_filter'][$plugin] !== array_intersect_assoc($CONFIG['overview_filter'][$plugin], $items)
+		) {
+			continue;
+		}
+
+		$items['h'] = $host;
+
+		$time = array_key_exists($plugin, $CONFIG['time_range'])
+			? $CONFIG['time_range'][$plugin]
+			: $CONFIG['time_range']['default'];
+
+		if ($CONFIG['graph_type'] == 'canvas') {
+			chdir($CONFIG['webdir']);
+			isset($items['p']) ? $_GET['p'] = $items['p'] : $_GET['p'] = '';
+			isset($items['pi']) ? $_GET['pi'] = $items['pi'] : $_GET['pi'] = '';
+			isset($items['t']) ? $_GET['t'] = $items['t'] : $_GET['t'] = '';
+			isset($items['ti']) ? $_GET['ti'] = $items['ti'] : $_GET['ti'] = '';
+			$_GET['s'] = $time;
+			include $CONFIG['webdir'].'/graph.php';
+		} else {
+			printf('<a href="%1$s%2$s"><img src="%1$s%3$s"></a>'."\n",
+				htmlentities($CONFIG['weburl']),
+				htmlentities(build_url('detail.php', $items, $time)),
+				htmlentities(build_url('graph.php', $items, $time))
+			);
+		}
+	}
+}
+
+# generate an url with GET values from $items
+function build_url($base, $items, $s=NULL) {
+	global $CONFIG;
+
+	if (!is_array($items))
+		return false;
+
+	if (!is_numeric($s))
+		$s = $CONFIG['time_range']['default'];
+
+	// Remove all empty values
+	$items = array_filter($items, 'strlen');
+
+	if (!isset($items['s']))
+		$items['s'] = $s;
+
+	return "$base?" . http_build_query($items, '', '&');
+}

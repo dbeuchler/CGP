@@ -2,28 +2,61 @@
 
 # global functions
 
-function GET($index) {
-	if (isset($_GET[$index]))
-		return $_GET[$index];
-	return null;
-}
+function GET($index = NULL, $value = NULL) {
+	# parse all values from $_GET when no index is given
+	if ($index === NULL) {
+		$arr = array();
+		foreach($_GET as $i => $v) {
+			$arr[$i] = GET($i);
+		}
+		return $arr;
+	}
 
-function validate_get($value, $type) {
-	switch($type) {
-		case 'host':
-			if (!preg_match('/^[\d\w\W]+$/u', $value))
+	if (!isset($_GET[$index]) or strlen($_GET[$index]) == 0)
+		return NULL;
+
+	if ($value === NULL)
+		$value = $_GET[$index];
+
+	$desc = array(
+		'h'  => 'host',
+		'p'  => 'plugin',
+		'c'  => 'category',
+		't'  => 'type',
+		'pi' => 'plugin instance',
+		'ti' => 'type instance',
+		's'  => 'seconds',
+		'x'  => 'x-axis',
+		'y'  => 'y-axis',
+	);
+
+	switch($index) {
+		case 'h': # host
+		case 'pi': # plugin instance
+		case 'ti': # type instance
+			if (!preg_match('/^[\w-.: ]+$/u', $value)) {
+				error_log(sprintf('Invalid %s in $_GET["%s"]: "%s"', $desc[$index], $index, $value));
 				return NULL;
+			}
 		break;
-		case 'plugin':
-		case 'category':
-		case 'type':
-			if (!preg_match('/^\w+$/u', $value))
+		case 'p': # plugin
+		case 'c': # category
+		case 't': # type
+			if (!preg_match('/^\w+$/u', $value)) {
+				error_log(sprintf('Invalid %s in $_GET["%s"]: "%s"', $desc[$index], $index, $value));
 				return NULL;
+			}
 		break;
-		case 'pinstance':
-		case 'tinstance':
-			if (!preg_match('/^[\d\w-]+$/u', $value))
+		case 's': # seconds
+		case 'x': # x-axis
+		case 'y': # y-axis
+			if (!is_numeric($value)) {
+				error_log(sprintf('Invalid %s in $_GET["%s"]: "%s"', $desc[$index], $index, $value));
 				return NULL;
+			}
+		break;
+		default:
+			return NULL;
 		break;
 	}
 
@@ -31,6 +64,11 @@ function validate_get($value, $type) {
 }
 
 function validateRRDPath($base, $path) {
+	$base = preg_replace('/\/$/', '', $base);
+
+	# resolve possible symlink
+	$base = realpath($base);
+
 	$realpath = realpath(sprintf('%s/%s', $base, $path));
 
 	if (strpos($realpath, $base) === false)
@@ -50,9 +88,7 @@ function crc32hex($str) {
 }
 
 function error_image() {
-	header("Content-Type: image/png");
+	header("Content-Type: image/png", true, 400);
 	readfile('layout/error.png');
 	exit;
 }
-
-?>
