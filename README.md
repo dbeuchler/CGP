@@ -8,7 +8,7 @@ have improvements or fixes, do not hesitate to send a pull request!
 
 Twitter Bootstrap Style
 ------------------------
-![Dashboard Screenshot](https://github.com/dbeuchler/CGPBootstrap/raw/master/misc/Dashboard-Photo.png)
+![Dashboard Screenshot](https://raw.githubusercontent.com/dbeuchler/CGPBootstrap/master/misc/Dashboard-Photo.png)
 
 Requirements
 ------------
