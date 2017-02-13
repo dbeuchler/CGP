@@ -13,12 +13,6 @@ $selected_plugins = !$plugin ? $CONFIG['overview'] : array($plugin);
 
 html_start($host, $selected_plugins);
 
-		echo <<<EOT
-<input type="checkbox" id="navicon" class="navicon" />
-<label for="navicon"></label>
-
-EOT;
-
 if (!strlen($host) || !$plugins = collectd_plugins($host)) {
 	echo "Unknown host\n";
 	return false;
