@@ -27,7 +27,7 @@ $seconds = GET('s');
 
 $selected_plugins = !$plugin ? $CONFIG['overview'] : array($plugin);
 
-html_start();
+html_start($host, $selected_plugins);
 
 
 		echo <<<EOT
