@@ -22,7 +22,9 @@ function html_start($host, $selected_plugins = array()) {
 	<link rel="stylesheet" href="{$html_weburl}layout/style.css" type="text/css">
 	<link rel="stylesheet" href="{$html_weburl}layout/bootstrap.min.css">
 
+	<link rel="stylesheet" href="{$html_weburl}layout/sb-admin.css" type="text/css">
 	<link rel="stylesheet" href="{$html_weburl}layout/dashboard.css" type="text/css">
+	<link href="{$html_weburl}layout/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
 	
 	<meta name="viewport" content="initial-scale = 0.6,maximum-scale = 0.6" />
 
@@ -61,41 +63,42 @@ EOT;
 echo <<<EOT
 </head>
 <body>
-	<div class="github-fork-ribbon-wrapper hidden-xs">
+  <div id="wrapper">
+	<nav class="navbar navbar-fixed-top navbar-inverse" role="navigation">
+
+	  <div class="navbar-header">
+	    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+	    </button>
+        <a class="navbar-brand" href="{$CONFIG['weburl']}"><i class="fa fa-bar-chart" aria-hidden="true"></i> Collectd Graph Panel</a>
+      </div>
+      <!-- Top Menu Items -->
+      <ul class="nav navbar-left top-nav">
+         <li><a href="{$CONFIG['weburl']}"><i class="fa fa-home" aria-hidden="true"></i> Home</a></li>
+      </ul>
+      <div class="collapse navbar-collapse navbar-ex1-collapse">
+        <ul class="nav navbar-nav side-nav">
+         
+EOT;
+        if ($host) {
+			plugins_list($host, $selected_plugins);
+		}
+echo <<<EOT
+        </ul>
+      </div><!-- /.nav-collapse -->
+    </div><!-- /.navbar -->
+
+    <div class="github-fork-ribbon-wrapper hidden-xs">
 	  <div class="github-fork-ribbon">
 	    <a target="_blank" href="https://github.com/dbeuchler/CGPBootstrap">Fork me on GitHub</a>
 	  </div>
 	</div>
 
-	<div class="navbar navbar-fixed-top navbar-inverse" role="navigation">
-      <div class="container">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="navbar-brand" href="{$CONFIG['weburl']}">Collectd Graph Panel</a>
-        </div>
-        <div class="collapse navbar-collapse">
-          <ul class="nav navbar-nav">
-            <li class="active"><a href="{$CONFIG['weburl']}">Home</a></li>
-			<li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown">Plugins <b class="caret"></b></a>
-              <ul class="dropdown-menu">
-EOT;
-					plugins_list($host, $selected_plugins);
-echo <<<EOT
-
-              </ul>
-            </li>
-          </ul>
-        </div><!-- /.nav-collapse -->
-      </div><!-- /.container -->
-    </div><!-- /.navbar -->
-
-	<div class="container">
+	<div id="page-wrapper">
+	  <div class="container">
 EOT;
 
 	if(!function_exists('json_decode')) {
@@ -137,6 +140,7 @@ function html_end($footer = false) {
 			$version = 'v'.$version[0];
 		}
 		echo <<<EOT
+  </div>
 </div>
 
 EOT;
@@ -164,6 +168,7 @@ echo <<<EOT
 
 	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 	<script src="{$CONFIG['weburl']}layout/bootstrap.min.js"></script>
+  </div>	
 </body>
 </html>
 EOT;
@@ -183,7 +188,7 @@ function plugins_list($host, $selected_plugins = array()) {
 	global $CONFIG;
 
 	$plugins = collectd_plugins($host);
-	printf("<li %s><a href='%shost.php?h=%s'>Overview</a></li>\n",
+	printf("<li %s><a href='%shost.php?h=%s'><i class='fa fa-eye' aria-hidden='true'></i> Overview</a></li>\n",
 		selected_overview($selected_plugins),
 		htmlentities($CONFIG['weburl']),
 		urlencode($host)
@@ -192,7 +197,7 @@ function plugins_list($host, $selected_plugins = array()) {
 	# first the ones defined as ordered
 	foreach($CONFIG['overview'] as $plugin) {
 		if (in_array($plugin, $plugins)) {
-			printf("<li %s ><a href='%shost.php?h=%s&p=%s'>%4\$s</a></li>\n",
+			printf("<li %s ><a href='%shost.php?h=%s&p=%s'><i class='fa fa-th' aria-hidden='true'></i> %4\$s</a></li>\n",
 				selected_plugin($plugin, $selected_plugins),
 				htmlentities($CONFIG['weburl']),
 				urlencode($host),
@@ -205,7 +210,7 @@ function plugins_list($host, $selected_plugins = array()) {
 	# other plugins
 	foreach($plugins as $plugin) {
 		if (!in_array($plugin, $CONFIG['overview'])) {
-			printf("<li %s ><a href='%shost.php?h=%s&p=%s'>%4\$s</a></li>\n",
+			printf("<li %s ><a href='%shost.php?h=%s&p=%s'><i class='fa fa-th' aria-hidden='true'></i> %4\$s</a></li>\n",
 				selected_plugin($plugin, $selected_plugins),
 				htmlentities($CONFIG['weburl']),
 				urlencode($host),
